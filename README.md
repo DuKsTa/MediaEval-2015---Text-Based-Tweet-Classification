@@ -1,1 +1,1 @@
-# MediaEval-2015---Text-Based-Tweet-Classification
+# MediaEval-2015-Text-Based-Tweet-Classification
