@@ -21,7 +21,6 @@ from nltk.tokenize import TweetTokenizer
 from langdetect import detect
 
 
-
 user_pattern = "@\w+"
 id_pattern = "([0-9])\d{6,}"
 hashtag_pattern = "#\w+"
@@ -217,7 +216,7 @@ test = [t for t in validation['filteredTweet']]
 
 model = Sequential()
 
-max_features = 5000  # Maximum vocab size.
+max_features = 6000  # Maximum vocab size.
 max_len = 140  # Sequence length to pad the outputs to.
 
 toknizer = Tokenizer()
@@ -262,12 +261,6 @@ y_test = np.asarray(validation['label']).astype(np.float32)
 x_train = tf.convert_to_tensor(padded_train_sequences, dtype=tf.int32)
 x_test = tf.convert_to_tensor(padded_test_sequences, dtype=tf.int32)
 
-# training_tensor = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-
-# training_tensor = training_tensor.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
-
-# test_tensor = tf.data.Dataset.from_tensor_slices(
-#     (tf.convert_to_tensor(padded_test_sequences, dtype=tf.int32), y_test)).cache().prefetch(buffer_size=tf.data.AUTOTUNE)
 
 class_weights = compute_class_weight(class_weight= 'balanced', classes=[0,1], y=y_train)
 
@@ -279,7 +272,7 @@ print("Class Weights are {}".format(class_weights))
 reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=2)
 
 history = model.fit(x=x_train, y=y_train,
-          epochs = 50,
+          epochs = 20,
           callbacks=[reduce_lr,
                     F1History(train=(x_train, y_train),
                              validation=(x_test, y_test))])
