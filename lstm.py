@@ -186,6 +186,7 @@ validation = pd.read_csv('mediaeval-2015-testset.txt', sep="\t")
 findLang(training)
 findLang(validation)
 
+
 training = training[training.lang == 'en']
 
 
@@ -205,6 +206,9 @@ validation['hashtags'] = validation['tweetText'].apply(hashtags_num)
 validation['emoji'] = validation['tweetText'].apply(emojis_num)
 validation['sentiment'] = validation['tweetText'].apply(sentiment)
 validation['filteredTweet'] = validation['tweetText'].apply(clean_all)
+
+labelToNumeric(validation)
+labelToNumeric(training)
 
 text_dataset = [t for tweet in training['filteredTweet'] for t in tweet]
 workout = [t for t in training['filteredTweet']]
