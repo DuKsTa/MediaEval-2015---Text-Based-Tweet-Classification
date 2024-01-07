@@ -29,6 +29,8 @@ link_pattern = "http(s)?://[^\s]+"
 stoplist = stopwords.words('english')
 stoplist.extend([',', ':',"?", "!", "[", "]", "(", ")", "..." , ";", "¿", "!", ".", "\\\\", "-", "_"])
 
+tknzr = TweetTokenizer()
+sntmnt = SentimentIntensityAnalyzer()
 
 def tweetLimit(tweet):
     if len(tweet) > 140:
