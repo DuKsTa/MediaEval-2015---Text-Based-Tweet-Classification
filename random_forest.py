@@ -5,6 +5,9 @@ import emoji
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+import nltk
+nltk.download('stopwords')
+
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
@@ -129,9 +132,6 @@ def clean_all(tweet):
 training = pd.read_csv('mediaeval-2015-trainingset.txt', sep="\t")
 validation = pd.read_csv('mediaeval-2015-testset.txt', sep="\t")
 
-
-training.drop(columns=["tweetId", "userId", "timestamp"], axis='columns', inplace=True)
-
 findLang(training)
 findLang(validation)
 
@@ -162,7 +162,7 @@ def topics_mapping(topic):
 def test_mapping(topic):
     return mapped_test.index(topic)
 
-training = training[training.lang == 'en']
+#training = training[training.lang == 'en']
 # validation = validation[validation.lang == 'en']
 
 
@@ -183,7 +183,6 @@ training['links'] = training['tweetText'].apply(links_num)
 training['hashtags'] = training['tweetText'].apply(hashtags_num)
 training['emoji'] = training['tweetText'].apply(emojis_num)
 training['sentiment'] = training['tweetText'].apply(sentiment)
-training['topic'] = training['imageId(s)'].apply(topic)
 training['filteredTweet'] = training['tweetText'].apply(clean_all)
 
 validation['tweetText'] = validation['tweetText'].apply(tweetLimit)
@@ -192,7 +191,6 @@ validation['links'] = validation['tweetText'].apply(links_num)
 validation['hashtags'] = validation['tweetText'].apply(hashtags_num)
 validation['emoji'] = validation['tweetText'].apply(emojis_num)
 validation['sentiment'] = validation['tweetText'].apply(sentiment)
-validation['topic'] = validation['imageId(s)'].apply(topic)
 validation['filteredTweet'] = validation['tweetText'].apply(clean_all)
 
 labelToNumeric(validation)
