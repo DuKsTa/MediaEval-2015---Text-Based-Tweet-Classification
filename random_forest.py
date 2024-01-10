@@ -166,6 +166,8 @@ def clean_all(tweet):
 training = pd.read_csv('mediaeval-2015-trainingset.txt', sep="\t")
 test = pd.read_csv('mediaeval-2015-testset.txt', sep="\t")
 
+training = training[training.label != 'humor']
+
 findLang(training)
 findLang(test)
 
@@ -185,6 +187,16 @@ for i in test['imageId(s)']:
         test_topics[i[0]] = 1
     else:
         test_topics[i[0]] += 1
+
+training = training[training.lang == 'en']
+training['topic'] = training['imageId(s)'].apply(topic)
+
+topics = training['topic'].value_counts()
+
+keep = topics[topics > 100].index
+
+training = training[training['topic'].isin(keep)]
+
 
 mapped_test = list(test_topics.keys())
 mapped_topics = list(topics.keys())
@@ -207,7 +219,7 @@ training['hashtags'] = training['tweetText'].apply(hashtags_num)
 training['emoji'] = training['tweetText'].apply(emojis_num)
 training['sentiment'] = training['tweetText'].apply(sentiment)
 training['topic'] = training['imageId(s)'].apply(topic)
-training['filteredTweet'] = training['tweetText'].apply(clean_all)
+training['topic'] = training['topic'].apply(topics_mapping)
 
 test['tweetText'] = test['tweetText'].apply(tweetLimit)
 test['tweetLength'] = test['tweetText'].apply(tweet_length)
@@ -216,24 +228,25 @@ test['hashtags'] = test['tweetText'].apply(hashtags_num)
 test['emoji'] = test['tweetText'].apply(emojis_num)
 test['sentiment'] = test['tweetText'].apply(sentiment)
 test['topic'] = test['imageId(s)'].apply(topic)
-test['filteredTweet'] = test['tweetText'].apply(clean_all)
+test['topic'] = test['topic'].apply(test_mapping)
+
+
 
 labelToNumeric(test)
 labelToNumeric(training)
 
 forest_true = np.asarray(training['label']).astype(np.int32)
-forest_train = training.drop(columns=["tweetLength", "tweetText", "filteredTweet", "imageId(s)", "username", "label", "lang", "timestamp", "tweetId"])
+forest_train = training.drop(columns=[ "tweetText", "imageId(s)", "username","lang", "label",  "timestamp", "tweetId"])
 
 forest_true_test = np.asarray(test['label']).astype(np.int32)
-forest_test = test.drop(columns=["tweetLength","tweetText", "filteredTweet", "imageId(s)", "username", "lang", "label", "timestamp", "tweetId"])
+forest_test = test.drop(columns=["tweetText",  "imageId(s)", "username", "lang", "label", "timestamp", "tweetId"])
 
 
 random_forest = RandomForestClassifier()
 
 
-parameters = {'n_estimators' : range(1, 300),
-              'max_depth': range(1, 30),
-             'criterion': ['gini', 'entropy'],
+parameters = {'n_estimators' : range(20, 300),
+              'max_depth': range(10, 50),
              }
 
 
