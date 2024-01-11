@@ -15,7 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV, train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score
 
-import language_tool_python as lang_tool
+#import language_tool_python as lang_tool
 
 user_pattern = "@\w+"
 id_pattern = "([0-9])\d{6,}"
@@ -30,7 +30,7 @@ stoplist.extend([',', ':',"?", "!", "[", "]", "(", ")", "..." , ";", "¿", "!", 
 
 tknzr = TweetTokenizer()
 sntmnt = SentimentIntensityAnalyzer()
-grammar = lang_tool.LanguageTool('en-US')
+#grammar = lang_tool.LanguageTool('en-US')
 
 
 # Change Labels to Numeric Values
@@ -113,8 +113,8 @@ def hashtags_num(tweet):
     num = re.findall(hashtag_pattern, tweet)
     return len(num)
 
-def mistakes_num(tweet):
-    return len(grammar.check(tweet))
+#def mistakes_num(tweet):
+#    return len(grammar.check(tweet))
         
 def links_num(tweet):
     urls = re.findall(link_pattern, tweet)
