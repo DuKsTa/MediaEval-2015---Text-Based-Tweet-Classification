@@ -4,11 +4,14 @@ import re
 import emoji
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import keras_tuner as kt
+import tensorflow_addons as tfa
 
 from keras.models import Sequential
 from keras.utils import pad_sequences
 from tensorflow.keras.preprocessing.text import Tokenizer
 from keras.layers import Embedding, Dense, LSTM, Dropout, Bidirectional
+
 
 from sklearn.metrics import classification_report
 from sklearn.utils.class_weight import compute_class_weight
@@ -214,7 +217,6 @@ workout = [t for t in training['filteredTweet']]
 test = [t for t in validation['filteredTweet']]
 
 
-model = Sequential()
 
 max_features = 6000  # Maximum vocab size.
 max_len = 140  # Sequence length to pad the outputs to.
@@ -230,31 +232,6 @@ padded_test_sequences = pad_sequences(test_sequences, maxlen=max_len)
 training_tensor = tf.convert_to_tensor(padded_train_sequences, dtype=tf.int32)
 testing_tensor = tf.convert_to_tensor(padded_test_sequences, dtype=tf.int32)
 
-
-embed_size = 64
-sequence_length = max_len
-
-model.add(Embedding(input_dim=max_features, output_dim=embed_size, input_length=sequence_length))
-
-model.add(Bidirectional(LSTM(units=embed_size, return_sequences=True)))
-model.add(Bidirectional(LSTM(units=embed_size, return_sequences=True)))
-
-model.add(Bidirectional(LSTM(units=1)))
-
-model.add(Dropout(0.5))
-
-model.add(Dense(embed_size, activation='ReLU'))
-
-model.add(Dense(1, activation='sigmoid'))
-
-opt = tf.keras.optimizers.Adam(learning_rate = 0.001)
-
-model.compile(
-    loss = 'binary_crossentropy',
-    optimizer = opt
-)
-
-
 y_train = np.asarray(training['label']).astype(np.int32)
 y_test = np.asarray(validation['label']).astype(np.float32)
 
@@ -269,14 +246,69 @@ class_weights = {0 : class_weights[0], 1:class_weights[1]}
 print("Class Weights are {}".format(class_weights))
 
 
+def build_model(hp):
+    embed_size = 64
+    sequence_length = max_len
+
+    dense_activations = hp.Choice('activation', values=['relu', 'tanh', 'softmax'])
+    hp_embedding_size = hp.Choice('embeds', values= [8, 16, 32, 64, 128, 256])
+    hp_lr = hp.Choice('lr', values= [0.01, 0.001, 0.0001])
+    hp_vocab_size = hp.Int('vocab', min_value=1000, max_value= 20000, step=50)
+    hp_dropout_values = hp.Float('dropout', min_value = 0.05, max_value = 0.5, step = 0.05)
+    hp_f1_threshold = hp.Float('F1_Threshold', min_value= 0.3, max_value= 0.6, step = 0.025)
+
+    model = Sequential()
+
+    model.add(Embedding(input_dim=hp_vocab_size, output_dim=hp_embedding_size, input_length=sequence_length))
+
+    model.add(Bidirectional(LSTM(units=hp_embedding_size, return_sequences=True)))
+    # model.add(Bidirectional(LSTM(units=hp_embedding_size, return_sequences=True)))
+
+    model.add(Bidirectional(LSTM(units=1)))
+
+    model.add(Dropout(hp_dropout_values))
+
+    model.add(Dense(hp_embedding_size, activation=dense_activations))
+
+    model.add(Dense(1, activation='sigmoid'))
+
+    opt = tf.keras.optimizers.Adam(learning_rate = hp_lr)
+    f1 = tfa.metrics.F1Score(num_classes= 1, threshold=hp_f1_threshold)
+
+    model.compile(
+        loss = 'binary_crossentropy',
+        optimizer = opt,
+        metrics= [f1]
+    )
+
+    return model
+
+
 reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.8, patience=2)
+
+tune = kt.Hyperband(build_model, 
+                    objective=kt.Objective('f1_score', direction='max'),
+                    max_epochs = 30,
+                    factor = 10,
+                    hyperband_iterations=5,
+                    directory='dir2',
+                    project_name='BIlstm')
+
+tune.search(x_train, y_train, epochs=50, validation_split=0.2, callbacks=[reduce_lr,
+                    F1History(train=(x_train, y_train),
+                             validation=(x_test, y_test))])
+
+best_hps = tune.get_best_hyperparameters(num_trials=1)[0]
+
+print("The best parameters are {}".format(best_hps))
+
+model = tune.hypermodel.build(best_hps)
 
 history = model.fit(x=x_train, y=y_train,
           epochs = 20,
           callbacks=[reduce_lr,
                     F1History(train=(x_train, y_train),
                              validation=(x_test, y_test))])
-
 
 print(history.history)
 history_df = pd.DataFrame(history.history)
